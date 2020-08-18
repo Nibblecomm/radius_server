@@ -1,81 +1,39 @@
-from gevent.lock import BoundedSemaphore
 import hashlib
-import arrow
-from collections import OrderedDict
+import json
+import redis
+import sys
+import inspect
+import os
 
-class Cache():
-    '''Creates a dict that expires after max_age_seconds
+from config import REDIS_URL
+from logger import exception
 
-    '''
-    def __init__(self,max_age_seconds=5):
-        self.age       = max_age_seconds
-        self.semaphore = BoundedSemaphore()
-        self.entries   = {}
-
-    def get(self, key): 
-        with self.semaphore:
-            item = self.entries.get(key)   
-            expiry = arrow.utcnow().timestamp - self.age
-            if item:
-                if item[1] > expiry:                    
-                    return item[0]
-                else:
-                    del self.entries[key]
-                    return None
-            else:
-                return None
-
-    def set(self, key, value): 
-        with self.semaphore:
-            self.entries[key] = (value,arrow.utcnow().timestamp)
-    
-    def delete(self, key):
-        with self.semaphore:
-            try:
-                del self.entries[key]
-            except KeyError as k:
-                pass
-        return
-
-    def exists(self, key):
-        """ Return True if the dict has a key, else return False. """
-        with self.semaphore:
-            item = self.entries.get(key)   
-            expiry = arrow.utcnow().timestamp - self.age
-            if item:
-                if item[1] > expiry:
-                    return True
-                else:
-                    del self.entries[key]
-                    return False
-            else:
-                return False
+rs = redis.Redis.from_url(REDIS_URL)
 
 
-online_cache = Cache()
-
-user_cache = Cache()
-
-nas_cache = Cache()
-
-stat_cache = Cache()
-
-_cache = Cache()
-
-def cache_data(category='all'):
+def cache_data(obj_type, ttl=600):
     def func_warp1(func):
         def func_wrap2(*args, **kargs):
             sig = _mk_cache_sig(*args, **kargs)
-            key = "%s:%s:%s"%(category,func.__name__, sig)
-            data = _cache.get(key)
-            if data is not None:
-                return data
-            data = func(*args, **kargs)
-            if data is not None:
-                _cache.set(key,data)
-            return data
+            key = "%s:%s" % (func.__name__, sig)
+            data_json = rs.get(key)
+            if data_json is not None:
+                obj_inst = obj_type()
+                obj_inst.from_dict(json.loads(data_json))
+                return obj_inst
+            obj_inst = func(*args, **kargs)
+            if obj_inst is not None:
+                data_json = json.dumps(obj_inst.to_dict())
+                try:
+                    rs.set(key, data_json, ex=ttl)
+                except:
+                    exception("Exception while trying to set {key} to {data_json}".format(key=key, data_json=data_json))
+            return obj_inst
+
         return func_wrap2
+
     return func_warp1
+
 
 def _mk_cache_sig(*args, **kargs):
     src_data = repr(args) + repr(kargs)
@@ -84,4 +42,3 @@ def _mk_cache_sig(*args, **kargs):
     return sig
 
 
- 

@@ -35,7 +35,7 @@ class _AccessRequestHandler():
         log_ctx.add_nas_info(nasid=radiusnas_id,siteid=radiusnas.siteid)
 
         #set secret
-        req.secret = radiusnas.secret.encode('utf-8')
+        req.secret = radiusnas.secret
 
         if not req.is_valid_pwd(radiususer.radiuspass):
             if is_debug():

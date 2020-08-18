@@ -8,7 +8,7 @@ from pyrad import dictionary
 #from settings import radiuslog 
 from pyrad.packet import Packet
 from pyrad.tools import DecodeString
-from logger import error,exception
+from logger import error,exception,info
 from packets import AuthPacket2,AcctPacket2
 import six
 import gevent
@@ -78,8 +78,9 @@ if __name__ == '__main__':
         workdir = os.path.join(os.path.abspath(os.path.dirname(__file__)))
 
     dict_file = os.path.join(workdir,'dictionary')
-
+    info("Starting Radius Authentication server on Port 1812")
     authsrv = RudiusAuthServer(address=('0.0.0.0',1812),dict=dictionary.Dictionary(dict_file))
+    info("Starting Radius Accounting server on Port 1813")
     acctsrv = RudiusAcctServer(address=('0.0.0.0',1813),dict=dictionary.Dictionary(dict_file))
     authsrv.serve_forever()
     acctsrv.serve_forever()

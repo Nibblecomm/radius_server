@@ -51,8 +51,8 @@
 #$INCLUDE dictionary.acc
 #$INCLUDE dictionary.alcatel
 #$INCLUDE dictionary.alteon
-$INCLUDE dictionary.aruba
-$INCLUDE dictionary.ascend
+#$INCLUDE dictionary.aruba
+#$INCLUDE dictionary.ascend
 #$INCLUDE dictionary.bay
 #$INCLUDE dictionary.bintec
 #$INCLUDE dictionary.cabletron

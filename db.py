@@ -1,9 +1,10 @@
 from sqlalchemy.orm import scoped_session,sessionmaker
-from caches import online_cache,user_cache,cache_data,stat_cache
+from caches import cache_data
 from models import engine
 from sqlalchemy.exc import SQLAlchemyError
 from logger import info,error,warning,debug,exception,is_debug
 import arrow
+
 import models
 
 Session = sessionmaker(bind=engine,autocommit=False, autoflush=False)
@@ -12,49 +13,35 @@ def get_db_session():
 
 
 
-@cache_data()
-def get_site_from_key(sitekey):
-    session = get_db_session()
-    result = session.query(models.Wifisite).filter_by(sitekey = sitekey).first()
-    session.close()
-    return result
-
-@cache_data()
-def get_site_from_d(siteid):
-    session = get_db_session()
-    result = session.query(models.Wifisite).filter_by(id=siteid).first()
-    session.close()
-    return result
-
-@cache_data()
+@cache_data(obj_type=models.Radiusnas)
 def get_nas(identity):
     session = get_db_session()
     result = session.query(models.Radiusnas).filter_by(identity = identity).first()
     session.close()
     return result
 
-@cache_data()
+@cache_data(obj_type=models.Radiusnas)
 def get_nas_from_id(id):
     session = get_db_session()
     result = session.query(models.Radiusnas).filter_by(id = id).first()
     session.close()
     return result
 
-@cache_data()
+@cache_data(obj_type=models.Radiususer)
 def get_radiususer(nasid,username):
     session = get_db_session()
     result = session.query(models.Radiususer).filter_by(nas_id=nasid,radiususer=username).first()
     session.close()
     return result
 
-@cache_data()
+@cache_data(obj_type=models.Radiususer)
 def get_radiususer_from_name(username):
     session = get_db_session()
     result = session.query(models.Radiususer).filter_by(radiususer=username).first()
     session.close()
     return result
 
-@cache_data()
+@cache_data(obj_type=models.Radiussessions)
 def get_radiussession(radiusnas,radiususer,sessionid):
     session = get_db_session()
     result = session.query(models.Radiussessions).filter_by(nas_id=radiusnas.id,

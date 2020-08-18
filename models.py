@@ -2,9 +2,7 @@
 
 from sqlalchemy import Integer,VARCHAR,create_engine,Column,ForeignKey,DateTime,BigInteger
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relation,relationship
-from sqlalchemy.types import TypeDecorator, Unicode
-import json
+import arrow
 import datetime
 
 #try to load configuration
@@ -13,10 +11,8 @@ import sys
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir)
-from unifispot.core.db import JSONEncodedDict
 try:
-    from instance.cloud_config import SQLALCHEMY_DATABASE_URI
+    from config import SQLALCHEMY_DATABASE_URI
 except:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///'+os.path.join(parentdir,'instance','database.db')
 
@@ -46,6 +42,27 @@ class Radiusnas(DeclarativeBase):
     vendor_id           = Column(Integer)
     demo                = Column(Integer,default=0)
 
+    def to_dict(self):
+        return {
+            'id':self.id,
+            'account_id':self.account_id,
+            'siteid':self.siteid,
+            'secret':self.secret,
+            'identity':self.identity,
+            'extip':self.extip,
+            'vendor_id':self.vendor_id,
+            'demo':self.demo
+        }
+    def from_dict(self,dict):
+        self.id     = dict.get('id')
+        self.account_id     = dict.get('account_id')
+        self.siteid     = dict.get('siteid')
+        self.secret     = dict.get('secret').encode('ascii')
+        self.extip     = dict.get('extip')
+        self.identity     = dict.get('identity')
+        self.vendor_id     = dict.get('vendor_id')
+        self.demo     = dict.get('demo')
+
 class Radiususer(DeclarativeBase):
     '''Model to handle Radius sessions
 
@@ -68,6 +85,49 @@ class Radiususer(DeclarativeBase):
     starttime           = Column(DateTime,default=datetime.datetime.utcnow,index=True)
     stoptime            = Column(DateTime,default=datetime.datetime.utcnow,index=True)
 
+    def to_dict(self):
+        """
+        Quick and hacky serialization for caching
+        :return:
+        """
+        d = {}
+        d['id'] = self.id
+        d['account_id'] = self.account_id
+        d['nas_id'] = self.nas_id
+        d['guestsessionid'] = self.guestsessionid
+        d['radiususer'] = self.radiususer
+        d['radiuspass'] = self.radiuspass
+        d['mac'] = self.mac
+        d['duration'] = self.duration
+        d['data_limit'] = self.data_limit
+        d['speed_ul'] = self.speed_ul
+        d['speed_dl'] = self.speed_dl
+        d['active'] = self.active
+        d['starttime'] = arrow.get(self.starttime).timestamp
+        d['stoptime'] = arrow.get(self.stoptime).timestamp
+        return d
+    def from_dict(self,d):
+        """
+        Quick de-serialization for caching
+        :param d:
+        :return:
+        """
+        self.id     = d.get('id')
+        self.account_id     = d.get('account_id')
+        self.nas_id     = d.get('nas_id')
+        self.guestsessionid     = d.get('guestsessionid')
+        self.radiususer     = d.get('radiususer')
+        self.radiuspass     = d.get('radiuspass')
+        self.mac     = d.get('mac')
+        self.duration     = d.get('duration')
+        self.data_limit     = d.get('data_limit')
+        self.speed_ul     = d.get('speed_ul')
+        self.speed_dl     = d.get('speed_dl')
+        self.active     = d.get('active')
+        self.starttime     = arrow.get(d.get('starttime')).naive
+        self.stoptime     = arrow.get(d.get('stoptime')).naive
+
+
 
 
 class Radiussessions(DeclarativeBase):
@@ -87,3 +147,35 @@ class Radiussessions(DeclarativeBase):
     mac                 = Column(VARCHAR(30),index=True)
     accnt_sessionid     = Column(VARCHAR(30),index=True)  #_id of document in guest collection of unifi
     framed_ip_address   = Column(VARCHAR(30),index=True)  #_id of document in guest collection of unifi
+
+    def to_dict(self):
+        """
+        Quick serialization for caching
+        :return:
+        """
+        d = {}
+        d['id'] = self.id
+        d['nas_id'] = self.nas_id
+        d['radiususer_id'] = self.radiususer_id
+        d['assoc_time'] = arrow.get(self.assoc_time).timestamp
+        d['disassoc_time'] = arrow.get(self.disassoc_time).timestamp
+        d['lastseen_time'] = arrow.get(self.lastseen_time).timestamp
+        d['duration'] = self.duration
+        d['data_used'] = self.data_used
+        d['mac'] = self.mac
+        d['accnt_sessionid'] = self.accnt_sessionid
+        d['framed_ip_address'] = self.framed_ip_address
+        return d
+
+    def from_dict(self,d):
+        self.id = d.get('id')
+        self.nas_id = d.get('nas_id')
+        self.radiususer_id = d.get('radiususer_id')
+        self.assoc_time = arrow.get(d.get('assoc_time')).naive
+        self.disassoc_time = arrow.get(d.get('disassoc_time')).naive
+        self.lastseen_time = arrow.get(d.get('lastseen_time')).naive
+        self.duration = d.get('duration')
+        self.data_used = d.get('data_used')
+        self.mac = d.get('mac')
+        self.accnt_sessionid = d.get('accnt_sessionid')
+        self.framed_ip_address = d.get('framed_ip_address')

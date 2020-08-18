@@ -11,50 +11,19 @@ services:
     ports:
       - "33060:3306"
     volumes:
-      - ./tests/testdb.sql:/docker-entrypoint-initdb.d/setup.sql
+      - ./data/db.sql:/docker-entrypoint-initdb.d/setup.sql
 
   redis_service:
     image: redis
 
-  app:
-    build:
-      dockerfile: Dockerfile
-      context: .
-      args:
-        NGINXCONFIG: wifiapp_staging.conf
-    links:
-      - mysql_service
-      - redis_service
-    ports:
-      - "0.0.0.0:443:443"
-    depends_on:
-      - "mysql_service"
-      - "redis_service"
-    command:  ["./wait-for-it.sh", "mysql_service:3036","--","./entrypoint.sh"]
-  celery:
-    build:
-      dockerfile: Dockerfile
-      context: .
-      args:
-        SUPERVISORCONF: celery_celerybeat.conf
-    links:
-      - mysql_service
-      - redis_service
-    depends_on:
-      - "app"
-    entrypoint: ["./wait-for-it.sh", "app:80","--","supervisord","-c","/etc/supervisor.conf"]
   radius:
     build:
       dockerfile: Dockerfile
       context: .
-      args:
-        SUPERVISORCONF: radius.conf
     links:
       - mysql_service
       - redis_service
     ports:
       - "0.0.0.0:1812:1812/udp"
       - "0.0.0.0:1813:1813/udp"
-    depends_on:
-      - "app"
-    entrypoint: ["./wait-for-it.sh", "app:80","--","supervisord","-c","/etc/supervisor.conf"]
+    command:  ["./wait-for-it.sh", "mysql_service:3036","--","./entrypoint.sh"]
