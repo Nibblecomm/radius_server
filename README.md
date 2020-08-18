@@ -30,3 +30,14 @@ python tests/test_auth.py
 ```shell script
 python tests/test_accounting.py
 ```
+
+
+## Development
+
+Server is based on Gevent and needs to be ported to asyncio-uvloop
+
+Below are the main files that can be checked.
+
+- server.py : Main Entry point
+- access_handler.py : Handles Access Requests
+- accounting_handler.py : Handles Accounting Requests
